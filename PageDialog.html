@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      /* Utilisation palette de couleurs */
+      body {
+        font-family: 'Arial', sans-serif;
+        color: #333;
+      }
+      .logo-container {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+      }
+      .logo-container img {
+        width: 120px;
+        opacity: 0.7;
+      }
+      .container {
+        margin-top: 50px; /* Réduit pour affichage plus compact dans la modale */
+        max-width: 600px;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border: 2px solid #dee2e6; /* Bordure grise neutre */
+      }
+      h2, h3 {
+        text-align: center;
+        color: #495057; /* Gris foncé neutre */
+        font-weight: 600;
+      }
+      .subtitle {
+        text-align: center;
+        color: #6c757d; /* Gris secondaire */
+        font-style: italic;
+        margin-top: 10px;
+        font-size: 0.9em;
+      }
+      .form-group label {
+        font-weight: 500;
+        color: #495057;
+      }
+      .btn {
+        padding: 10px 18px;
+        font-size: 16px;
+        border-radius: 5px;
+        font-weight: 500;
+      }
+      /* boutons utilisent couleurs par défaut de Bootstrap pour look générique */
+      #results, #userCodesSection {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logo-container">
+      <img src="https://placehold.co/200x80/EFEFEF/AAAAAA&text=Votre+Logo" alt="Logo Placeholder">
+    </div>
+    <div class="container">
+      <h2>Génération de Codes</h2>
+      <p class="subtitle">Cet outil permet de générer des codes uniques pour utilisation temporaire. Les codes sauvegardés ont une durée de validité limitée.</p>
+
+      <div class="form-group">
+        <label for="numToGenerate">Nombre de codes à générer :</label>
+        <input type="number" id="numToGenerate" class="form-control" value="10" min="1">
+      </div>
+      <button class="btn btn-primary" onclick="generateCodes()">Générer</button>
+
+      <div id="results">
+        <h3>Codes Générés</h3>
+        <table id="codesTable" class="table table-sm table-striped">
+          <thead><tr><th>Codes</th></tr></thead>
+          <tbody id="codesBody"></tbody>
+        </table>
+        <button class="btn btn-success" onclick="saveCodes()">Sauvegarder</button>
+        <button class="btn btn-secondary" onclick="cancelGeneration()">Annuler</button>
+      </div>
+
+      <div id="userCodesSection">
+        <h3>Vos Codes Sauvegardés</h3>
+        <table id="userCodesTable" class="table table-sm table-hover">
+          <thead><tr><th>Codes</th></tr></thead>
+          <tbody id="userCodesBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      // noms de variables ont été anonymisés ('matricules' -> 'codes')
+      let generatedCodes = []; 
+      let savedCodes = [];
+
+      // Fonction pour générer codes
+      function generateCodes() {
+        const numToGenerate = document.getElementById('numToGenerate').value;
+        // Les noms des fonctions serveur appelées ont aussi été anonymisés
+        google.script.run.withSuccessHandler(function(codes) {
+          generatedCodes = codes;
+          displayGeneratedCodes();
+        }).generateAndStoreCodes(numToGenerate);
+      }
+
+      // Afficher codes générés
+      function displayGeneratedCodes() {
+        const resultsDiv = document.getElementById('results');
+        const tableBody = document.getElementById('codesBody');
+        tableBody.innerHTML = '';
+        generatedCodes.forEach(code => {
+          const row = tableBody.insertRow();
+          const cell = row.insertCell();
+          cell.textContent = code;
+        });
+        resultsDiv.style.display = 'block';
+      }
+
+      // Sauvegarder codes générés
+      function saveCodes() {
+        google.script.run.withSuccessHandler(function() {
+          savedCodes = savedCodes.concat(generatedCodes);
+          updateSavedCodesSection();
+          clearGeneratedCodes();
+        }).saveCodesInSession(generatedCodes);
+      }
+
+      // Mettre à jour section codes sauvegardés par l'utilisateur
+      function updateSavedCodesSection() {
+        const userCodesSection = document.getElementById('userCodesSection');
+        const tableBody = document.getElementById('userCodesBody');
+        tableBody.innerHTML = '';
+        savedCodes.forEach(code => {
+          const row = tableBody.insertRow();
+          const cell = row.insertCell();
+          cell.textContent = code;
+        });
+        userCodesSection.style.display = savedCodes.length > 0 ? 'block' : 'none';
+      }
+
+      // Annuler génération en cours
+      function cancelGeneration() {
+        clearGeneratedCodes();
+      }
+
+      // Nettoyer section des codes générés
+      function clearGeneratedCodes() {
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('codesBody').innerHTML = '';
+        generatedCodes = [];
+      }
+
+      // Nettoyer codes temporaires côté serveur à la fermeture de page
+      window.onbeforeunload = function() {
+        if (generatedCodes.length > 0) {
+        }
+      };
+
+      // Charger codes déjà sauvegardés dans session à l'ouverture de la page
+      window.onload = function() {
+        google.script.run.withSuccessHandler(function(codes) {
+          if (codes && codes.length > 0) {
+            savedCodes = codes;
+            updateSavedCodesSection();
+          }
+        }).getSavedCodesFromSession();
+      };
+    </script>
+  </body>
+</html>
